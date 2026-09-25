@@ -1,6 +1,6 @@
-# Outlook QR / Code
+# Protocole de confirmation d'envoi à la BPS
 
-Petite page web permettant d'ouvrir un nouveau message Outlook à partir d'un code.
+Cet outil est un protocole permettant d'ouvrir un nouveau message Outlook automatisé et synchronisé à partir d'un code avec le matricule d'un agent.
 
 ## 1. Utilisation par code
 
@@ -10,9 +10,9 @@ Ouvrir :
 
 puis saisir par exemple :
 
-`POL-001`
+`POL-0001`
 
-## 2. Utilisation par QR code
+## 2. Utilisation par QR code (pas encore disponible)
 
 Une fois le site publié, créer un QR contenant une URL comme :
 
@@ -27,7 +27,7 @@ Modifier la constante `CODES` dans `index.html`.
 Exemple :
 
 ```javascript
-"POL-003": {
+"POL-0001": {
   to: "destinataire@exemple.ch",
   cc: "copie@exemple.ch",
   subject: "Objet du message",
@@ -38,13 +38,13 @@ Exemple :
 Pour plusieurs destinataires :
 
 ```javascript
-to: "personne1@exemple.ch;personne2@exemple.ch"
+to: "agent1@exemple.ch;agent2@exemple.ch"
 ```
 
 Pour plusieurs personnes en copie :
 
 ```javascript
-cc: "personne1@exemple.ch;personne2@exemple.ch"
+cc: "agent1@exemple.ch;agent2@exemple.ch"
 ```
 
 ## 4. Outlook sur Windows
