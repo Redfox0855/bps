@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ouverture Outlook</title>
+  <meta name="description" content="Ouverture d'un nouveau message Outlook à partir d'un code.">
+  <style>
+    :root {
+      font-family: "Segoe UI", Arial, sans-serif;
+      color-scheme: light;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f3f6f9;
+      color: #1f2937;
+    }
+    .card {
+      width: min(92vw, 520px);
+      background: #fff;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 10px 35px rgba(0,0,0,.10);
+    }
+    h1 { margin: 0 0 8px; font-size: 26px; }
+    .subtitle { margin: 0 0 26px; color: #667085; }
+    label { display:block; font-weight: 600; margin-bottom: 8px; }
+    input {
+      width: 100%;
+      padding: 14px 15px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 17px;
+      text-transform: uppercase;
+      outline: none;
+    }
+    input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+    button {
+      width: 100%;
+      margin-top: 14px;
+      padding: 14px 18px;
+      border: 0;
+      border-radius: 10px;
+      background: #2563eb;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: #1d4ed8; }
+    .message {
+      margin-top: 16px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      display: none;
+      line-height: 1.45;
+    }
+    .error { display:block; background:#fef2f2; color:#b91c1c; }
+    .success { display:block; background:#ecfdf3; color:#047857; }
+    .details {
+      margin-top: 18px;
+      padding: 15px;
+      background: #f8fafc;
+      border-radius: 10px;
+      display: none;
+      font-size: 14px;
+    }
+    .details div { margin: 5px 0; }
+    .details strong { display:inline-block; width:70px; }
+    .hint { margin-top: 18px; font-size: 13px; color: #667085; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Ouvrir un e-mail Outlook</h1>
+    <p class="subtitle">Entrez le code fourni ou utilisez le QR code associé.</p>
+
+    <form id="emailForm">
+      <label for="code">Code</label>
+      <input id="code" name="code" type="text" placeholder="Ex. POL-001"
+             autocomplete="off" autocapitalize="characters" spellcheck="false" required>
+      <button type="submit">Ouvrir dans Outlook</button>
+    </form>
+
+    <div id="message" class="message" role="alert"></div>
+    <div id="details" class="details"></div>
+
+    <p class="hint">
+      Le lien généré utilise le protocole <strong>mailto:</strong>.
+      Sur un ordinateur, Outlook doit être associé aux liens mailto pour être lancé automatiquement.
+    </p>
+  </main>
+
+<script>
+/*
+ * CONFIGURATION
+ * ------------------------------------------------------------
+ * Ajoutez ou modifiez les codes ci-dessous.
+ *
+ * Exemple :
+ * "POL-001": {
+ *   to: "destinataire@exemple.ch",
+ *   cc: "copie@exemple.ch",
+ *   subject: "Rapport d'intervention",
+ *   body: "Bonjour,\\n\\nVeuillez trouver ci-joint..."
+ * }
+ *
+ * Pour plusieurs adresses dans À ou CC, séparez-les par un point-virgule.
+ */
+const CODES = {
+  "POL-001": {
+    to: "destinataire@exemple.ch",
+    cc: "copie@exemple.ch",
+    subject: "Rapport d'intervention",
+    body: "Bonjour,\n\nVeuillez trouver ci-joint le rapport d'intervention.\n\nMeilleures salutations"
+  },
+
+  "POL-002": {
+    to: "service@exemple.ch",
+    cc: "responsable@exemple.ch",
+    subject: "Demande de renseignement",
+    body: "Bonjour,\n\nJe souhaite obtenir des renseignements concernant...\n\nMeilleures salutations"
+  }
+};
+
+const form = document.getElementById("emailForm");
+const codeInput = document.getElementById("code");
+const message = document.getElementById("message");
+const details = document.getElementById("details");
+
+function normalizeCode(value) {
+  return value.trim().toUpperCase();
+}
+
+function encodeMailto(data) {
+  const params = new URLSearchParams();
+
+  if (data.cc) params.set("cc", data.cc);
+  if (data.subject) params.set("subject", data.subject);
+  if (data.body) params.set("body", data.body);
+
+  const query = params.toString();
+  return "mailto:" + data.to + (query ? "?" + query : "");
+}
+
+function showMessage(text, type) {
+  message.textContent = text;
+  message.className = "message " + type;
+}
+
+function showDetails(code, data) {
+  details.innerHTML = `
+    <div><strong>Code :</strong> ${escapeHtml(code)}</div>
+    <div><strong>À :</strong> ${escapeHtml(data.to || "—")}</div>
+    <div><strong>CC :</strong> ${escapeHtml(data.cc || "—")}</div>
+    <div><strong>Objet :</strong> ${escapeHtml(data.subject || "—")}</div>
+  `;
+  details.style.display = "block";
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function openCode(code) {
+  const data = CODES[code];
+
+  if (!data) {
+    details.style.display = "none";
+    showMessage("Code inconnu. Vérifiez le code et réessayez.", "error");
+    return false;
+  }
+
+  if (!data.to) {
+    details.style.display = "none";
+    showMessage("Ce code n'a pas de destinataire configuré.", "error");
+    return false;
+  }
+
+  const mailto = encodeMailto(data);
+  showDetails(code, data);
+  showMessage("Ouverture d'Outlook...", "success");
+
+  // Le navigateur transmet le lien mailto: au gestionnaire de messagerie
+  // configuré sur l'appareil.
+  window.location.href = mailto;
+
+  return true;
+}
+
+form.addEventListener("submit", function(event) {
+  event.preventDefault();
+  const code = normalizeCode(codeInput.value);
+  openCode(code);
+});
+
+/*
+ * MODE QR
+ * ------------------------------------------------------------
+ * Un QR peut contenir par exemple :
+ * https://votre-domaine.ch/?code=POL-001
+ *
+ * La page détecte automatiquement le paramètre ?code=...
+ */
+const params = new URLSearchParams(window.location.search);
+const qrCode = params.get("code");
+
+if (qrCode) {
+  const normalized = normalizeCode(qrCode);
+  codeInput.value = normalized;
+
+  // Petit délai pour laisser la page s'afficher avant de lancer mailto.
+  setTimeout(() => openCode(normalized), 250);
+}
+</script>
+</body>
+</html>
